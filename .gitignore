@@ -1,3 +1,11 @@
+# Package distribution stuff:
 token.txt
+dist/*
+build/*
+*.egg-info/*
+
+# Python compilation files:
 luthiertext/**/__pycache__/*
+
+# Visual Studio stuff:
 workspace.code-workspace
