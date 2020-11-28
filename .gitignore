@@ -9,3 +9,4 @@ luthiertext/**/__pycache__/*
 
 # Visual Studio stuff:
 workspace.code-workspace
+.vscode/**
