@@ -32,36 +32,6 @@ min_count=0., max_count=None, max_words=None):
     idx_to_tk = {idx:tk for tk,idx in full_vocab.items()}
     vocab = {idx_to_tk[idx]:i for i,idx in enumerate(sorted_indices)}
 
-
-
-    """ keys = np.array(list(full_vocab.keys()))
-    values = np.array(list(full_vocab.values()))
-    keys = keys[np.argsort(values)]
-
-    freqs = get_freqs_fn(X)
-    sorted_idx = np.argsort(freqs)[::-1]
-    sorted_freqs = freqs[sorted_idx]
-    X = reshape_X_fn(X,sorted_idx)
-    keys = keys[sorted_idx]
-
-    if min_count <= 0 and max_count is None:
-        pass
-
-    else:
-        if max_count is None:
-            max_count = np.inf
-
-        mask = np.logical_and(sorted_freqs <= max_count, sorted_freqs >= min_count)
-        X = reshape_X_fn(X,mask)
-        keys = keys[mask]
-
-    if max_words is not None:
-        mask = np.arange(X.shape[0]) < max_words
-        X = reshape_X_fn(X,mask)
-        keys = keys[:max_words]
-
-    vocab = {tk:idx for idx,tk in enumerate(keys)} """
-
     return X, vocab
 
 
