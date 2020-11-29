@@ -22,6 +22,11 @@ def count_from_existing_vocab(X,full_vocab,my_vocab):
 	X, my_vocab = reduce_by_freq(X, my_vocab, 0, None, None)
 	return X, my_vocab
 
+################
+### TO DO:
+### HACE UNA FUNCIÓN TRANSFORM Y OTRA FIT_TRANSFORM QUE CUENTEN DESDE UN VOCAB
+### DADO Y DESDE CERO, RESPECTIVAMENTE.
+################
 
 class BONgramsVectorizer(object):
 	""" Vectorizer para convertir texto en vectores.
