@@ -184,14 +184,17 @@ def word_by_category_cooccurrence(corpus, labels, tokenizer=None,
     todas las categorías posibles, y todas las entradas de la matriz contienen la cuenta
     de cuántas veces apareció la palabra en un documento de cada categoría.
     """
+
+    # Definiciones de para el vocabulario y el diccionario de coocurrencias:
     categories = sorted(set(labels)) # Se asume que los labels son 0, 1, ..., len(categories)
     cooccurrences_dict = defaultdict(float)
     full_vocab = defaultdict()
     full_vocab.default_factory = full_vocab.__len__
 
-    if tokenizer is None:
-        tokenizer = lambda x: x
+    # Se checkea si tokenizer es válido:
+    tokenizer = _check_tokenizer(tokenizer)
 
+    # Cuento coocurrencias con las etiquetas:
     for doc, label in zip(corpus, labels):
         for tk in tokenizer(doc):
             cooccurrences_dict[(full_vocab[tk],label)] += 1.
@@ -200,5 +203,18 @@ def word_by_category_cooccurrence(corpus, labels, tokenizer=None,
     i, j = zip(*cooccurrences_dict.keys())
     data = list(cooccurrences_dict.values())
     X = coo_matrix((data, (i,j)),shape=(len(full_vocab),len(categories)))
-    return reduce_by_freq(X.tocsr(), full_vocab, min_count, max_count, max_words)
+
+    # Limito por frecuencia o por tope máximo de palabras
+    def get_freqs(X):
+        return X.sum(axis=1).A1.reshape(-1)
+
+    def reshape_X(X,mask_or_indices):
+        X = X[mask_or_indices,:]
+        return X 
+
+    # Limito por frecuencia:
+    X, vocab = _filter_by_frequency(X.tocsr(), full_vocab, reshape_X, get_freqs, 
+                                min_count, max_count, max_words)
+    
+    return X, vocab
 
