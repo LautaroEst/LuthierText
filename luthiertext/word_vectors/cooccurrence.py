@@ -1,8 +1,7 @@
-from collections import defaultdict
+from collections import defaultdict, Counter
 import numpy as np
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, csr_matrix
 from tqdm import tqdm
-from ..count import count_bag_of_ngrams, reduce_by_freq
 
 
 def _filter_by_frequency(X, full_vocab, reshape_X_fn, get_freqs_fn, 
@@ -140,8 +139,41 @@ def word_by_document_cooccurrence(corpus, tokenizer=None,
     Devuelve la matriz de coocurrencias entre palabras y documentos. Cada fila es una palabra
     y cada columna, un documento distinto.
     """
-    X, vocab = count_bag_of_ngrams(corpus, ngram_range=(1,1), tokenizer=tokenizer)
-    return reduce_by_freq(X.T.tocsr(), vocab, min_count, max_count, max_words)
+
+    # Se checkea si tokenizer es válido:
+    tokenizer = _check_tokenizer(tokenizer)
+
+    # Definiciones para la matriz de coocurrencias:
+    data = []
+    indices = []
+    indptr = [0]
+
+    # Definiciones para el vocabulario:
+    full_vocab = defaultdict()
+    full_vocab.default_factory = full_vocab.__len__
+
+    # Cuento palabras:
+    for doc in tqdm(corpus):
+        features = dict(Counter(tokenizer(doc)))
+        data.extend(features.values())
+        indices.extend([full_vocab[tk] for tk in features])
+        indptr.append(len(indices))
+
+    vocab_len = len(full_vocab)
+    X = csr_matrix((data,indices,indptr),shape=(len(corpus),vocab_len))
+    full_vocab = dict(full_vocab)
+
+    # Limito por frecuencia o por tope máximo de palabras
+    def get_freqs(X):
+        return X.sum(axis=1).A1.reshape(-1)
+
+    def reshape_X(X,mask_or_indices):
+        X = X[mask_or_indices,:]
+        return X 
+
+    X, vocab = _filter_by_frequency(X.T.tocsr(),full_vocab,reshape_X,get_freqs,
+                                    min_count,max_count,max_words)
+    return X, vocab
 
 
 def word_by_category_cooccurrence(corpus, labels, tokenizer=None,
