@@ -71,7 +71,6 @@ def _check_context_size_and_window(window,left_n,right_n):
     
     if window is None:
         window = [1. for i in range(left_n+right_n+1)]
-        #window[left_n] = 0.
     else:
         try:
             if len(window) != left_n + right_n + 1:
