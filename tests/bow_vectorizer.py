@@ -4,6 +4,7 @@ from luthiertext import BONgramsVectorizer
 
 import re
 from itertools import chain, tee, islice
+from collections import Counter
 import numpy as np
 
 
@@ -85,6 +86,7 @@ def test2():
 	vec = BONgramsVectorizer(tokenizer=tokenizer,
 							 min_count=0.,
 							 max_count=None,
+							 max_words=None,
 							 ngram_range=(1,1),
 							 vocab=None,
 							 unk_token='UNK')
@@ -107,6 +109,257 @@ def test2():
 	except AssertionError:
 		print('Test 2 failed')
 
+
+def test3():
+
+	ngram_range = (1,2)
+	
+	vec = BONgramsVectorizer(tokenizer=tokenizer,
+							 min_count=0.,
+							 max_count=None,
+							 max_words=None,
+							 ngram_range=ngram_range,
+							 vocab=None,
+							 unk_token='UNK')
+
+	X_train = vec.fit_transform(sample_train_corpus)
+	X_test = vec.transform(sample_test_corpus)
+
+	train_features = [dict(Counter(get_ngrams(tokenizer(doc),ngram_range))) for doc in sample_train_corpus]
+	true_vocab = []
+	for features in train_features:
+		true_vocab.extend(list(features.keys()))
+	test_features = [dict(Counter(get_ngrams(tokenizer(doc),ngram_range))) for doc in sample_test_corpus]
+	new_test_features = []
+	for features in test_features:
+		feat_dict = {}
+		for feature in features.keys():
+			if feature in true_vocab:
+				feat_dict[feature] = features[feature]
+			else:
+				try:
+					feat_dict['UNK'] += features[feature]
+				except:
+					feat_dict['UNK'] = features[feature]
+		new_test_features.append(feat_dict)
+
+	try:
+		for i,features in enumerate(train_features):
+			for feature in features.keys():
+				assert X_train[i,vec.vocab[feature]] == features[feature]
+		for i,features in enumerate(new_test_features):
+			for feature in features.keys():
+				assert X_test[i,vec.vocab[feature]] == features[feature]
+		
+		print('Test 3 passed!')
+	except AssertionError:
+		print('Test 3 failed')
+
+
+def test4():
+
+	ngram_range = (1,2)
+	
+	vec = BONgramsVectorizer(tokenizer=tokenizer,
+							 min_count=0.,
+							 max_count=3,
+							 max_words=None,
+							 ngram_range=ngram_range,
+							 vocab=None,
+							 unk_token=None)
+
+	X_train = vec.fit_transform(sample_train_corpus)
+	X_test = vec.transform(sample_test_corpus)
+
+	train_features = [dict(Counter(get_ngrams(tokenizer(doc),ngram_range))) for doc in sample_train_corpus]
+	freqs_dict = {}
+	for features in train_features:
+		for f in features.keys():
+			try:
+				freqs_dict[f] += features[f]
+			except:
+				freqs_dict[f] = features[f]
+
+	true_vocab = [f for f in freqs_dict.keys() if freqs_dict[f] >=0 and freqs_dict[f] <=3]
+
+	new_train_features = []
+	for features in train_features:
+		feat_dict = {}
+		for feature in features.keys():
+			if feature in true_vocab:
+				feat_dict[feature] = features[feature]
+		new_train_features.append(feat_dict)
+
+	test_features = [dict(Counter(get_ngrams(tokenizer(doc),ngram_range))) for doc in sample_test_corpus]
+	new_test_features = []
+	for features in test_features:
+		feat_dict = {}
+		for feature in features.keys():
+			if feature in true_vocab:
+				feat_dict[feature] = features[feature]
+		new_test_features.append(feat_dict)
+
+	try:
+		for i,features in enumerate(new_train_features):
+			for feature in features.keys():
+				assert X_train[i,vec.vocab[feature]] == features[feature]
+		for i,features in enumerate(new_test_features):
+			for feature in features.keys():
+				assert X_test[i,vec.vocab[feature]] == features[feature]
+		
+		print('Test 4 passed!')
+	except AssertionError:
+		print('Test 4 failed')
+
+
+def test5():
+
+	ngram_range = (1,1)
+	max_words = 5
+	min_count = 0
+	max_count = 3
+	
+	vec = BONgramsVectorizer(tokenizer=tokenizer,
+							 min_count=min_count,
+							 max_count=max_count,
+							 max_words=max_words,
+							 ngram_range=ngram_range,
+							 vocab=None,
+							 unk_token='UNK')
+
+	X_train = vec.fit_transform(sample_train_corpus)
+	X_test = vec.transform(sample_test_corpus)
+
+	train_features = [dict(Counter(get_ngrams(tokenizer(doc),ngram_range))) for doc in sample_train_corpus]
+	freqs_dict = {}
+	for features in train_features:
+		for f in features.keys():
+			try:
+				freqs_dict[f] += features[f]
+			except:
+				freqs_dict[f] = features[f]
+
+	""" keys = np.array(list(freqs_dict.keys()))
+	freqs = np.array(list(freqs_dict.values()))
+	ids = np.argsort(freqs)[::-1]
+	freqs_dict = {tk:idx for idx,tk in zip(freqs[ids],keys[ids])}
+	true_vocab = [f for f in freqs_dict.keys() if freqs_dict[f] >=min_count and freqs_dict[f] <=max_count][:max_words] """
+	true_vocab = ['por', 'a', 'su', 'una', 'UNK']
+
+	new_train_features = []
+	for features in train_features:
+		feat_dict = {}
+		for feature in features.keys():
+			if feature in true_vocab:
+				feat_dict[feature] = features[feature]
+			else:
+				try:
+					feat_dict['UNK'] += features[feature]
+				except:
+					feat_dict['UNK'] = features[feature]
+		new_train_features.append(feat_dict)
+
+	test_features = [dict(Counter(get_ngrams(tokenizer(doc),ngram_range))) for doc in sample_test_corpus]
+	new_test_features = []
+	for features in test_features:
+		feat_dict = {}
+		for feature in features.keys():
+			if feature in true_vocab:
+				feat_dict[feature] = features[feature]
+			else:
+				try:
+					feat_dict['UNK'] += features[feature]
+				except:
+					feat_dict['UNK'] = features[feature]
+		new_test_features.append(feat_dict)
+
+	try:
+		for i,features in enumerate(new_train_features):
+			for feature in features.keys():
+				assert X_train[i,vec.vocab[feature]] == features[feature]
+		for i,features in enumerate(new_test_features):
+			for feature in features.keys():
+				assert X_test[i,vec.vocab[feature]] == features[feature]
+		
+		print('Test 5 passed!')
+	except AssertionError:
+		print('Test 5 failed')
+
+
+def test6():
+
+	ngram_range = (1,1)
+	max_words = None
+	min_count = 0
+	max_count = None
+	vocab = ['por', 'a', 'su', 'una']
+	
+	vec = BONgramsVectorizer(tokenizer=tokenizer,
+							 min_count=min_count,
+							 max_count=max_count,
+							 max_words=max_words,
+							 ngram_range=ngram_range,
+							 vocab=vocab,
+							 unk_token='UNK')
+
+	X_train = vec.fit_transform(sample_train_corpus)
+	X_test = vec.transform(sample_test_corpus)
+
+	train_features = [dict(Counter(get_ngrams(tokenizer(doc),ngram_range))) for doc in sample_train_corpus]
+	freqs_dict = {}
+	for features in train_features:
+		for f in features.keys():
+			try:
+				freqs_dict[f] += features[f]
+			except:
+				freqs_dict[f] = features[f]
+
+	true_vocab = vocab + ['UNK']
+
+	new_train_features = []
+	for features in train_features:
+		feat_dict = {}
+		for feature in features.keys():
+			if feature in true_vocab:
+				feat_dict[feature] = features[feature]
+			else:
+				try:
+					feat_dict['UNK'] += features[feature]
+				except:
+					feat_dict['UNK'] = features[feature]
+		new_train_features.append(feat_dict)
+
+	test_features = [dict(Counter(get_ngrams(tokenizer(doc),ngram_range))) for doc in sample_test_corpus]
+	new_test_features = []
+	for features in test_features:
+		feat_dict = {}
+		for feature in features.keys():
+			if feature in true_vocab:
+				feat_dict[feature] = features[feature]
+			else:
+				try:
+					feat_dict['UNK'] += features[feature]
+				except:
+					feat_dict['UNK'] = features[feature]
+		new_test_features.append(feat_dict)
+
+	try:
+		for i,features in enumerate(new_train_features):
+			for feature in features.keys():
+				assert X_train[i,vec.vocab[feature]] == features[feature]
+		for i,features in enumerate(new_test_features):
+			for feature in features.keys():
+				assert X_test[i,vec.vocab[feature]] == features[feature]
+		
+		print('Test 6 passed!')
+	except AssertionError:
+		print('Test 6 failed')
+
+
 if __name__ == '__main__':
-	test1()
+	""" test1()
 	test2()
+	test3()
+	test4()
+	test5() """
+	test6()

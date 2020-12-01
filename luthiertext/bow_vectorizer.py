@@ -48,7 +48,7 @@ def count_bag_of_ngrams_from_stratch(corpus, ngram_range, tokenizer, unk_token):
 
 
 def count_bag_of_ngrams_using_vocab(corpus, vocab, ngram_range=(1,1), 
-						tokenizer=None, unk_token=None, is_fitting=True):
+						tokenizer=None, unk_token=None):
 	
 	# Definiciones para la matriz de coocurrencias:
 	data = []
@@ -64,23 +64,17 @@ def count_bag_of_ngrams_using_vocab(corpus, vocab, ngram_range=(1,1),
 		indptr.append(len(indices))
 
 	# Armo la matriz y el diccionario de vocabulario:
-	X = csr_matrix((data,indices,indptr),shape=(len(corpus),len(vocab)+1)).tolil()
-	if is_fitting:
-		if isinstance(unk_token,str):
-			vocab[unk_token] = unk_idx	
-		else:
-			X = X[:,:-1]
+	X = csr_matrix((data,indices,indptr),shape=(len(corpus),len(vocab)+1))
+
+	if isinstance(unk_token,str):
+		vocab[unk_token] = unk_idx	
 	else:
-		if isinstance(unk_token,str):
-			X[:,vocab[unk_token]] = X[:,-1]
-			X.resize(X.shape[0],X.shape[1]-1)
-		else:
-			X = X[:,:-1]
-
-	return X.tocsr(), vocab
+		X = X[:,:-1]
+	
+	return X, vocab
 
 
-def filter_by_counts(X,full_vocab,min_count,max_count,max_words):
+def filter_by_counts(X,full_vocab,min_count,max_count,max_words,unk_token):
 
 	freqs = X.sum(axis=0).A1
 	sorted_indices = np.argsort(freqs)[::-1]
@@ -99,6 +93,21 @@ def filter_by_counts(X,full_vocab,min_count,max_count,max_words):
 
 	if max_words is not None:
 		sorted_indices = sorted_indices[:max_words]
+
+	if isinstance(unk_token,str):
+		unk_idx = full_vocab[unk_token]
+		if unk_idx not in sorted_indices:
+			if max_words is not None:
+				if len(sorted_indices) < max_words:
+					sorted_indices = np.hstack((sorted_indices,np.array([unk_idx])))
+				else:
+					sorted_indices[-1] = unk_idx
+			else:
+				sorted_indices = np.hstack((sorted_indices,np.array([unk_idx])))
+		
+		mask = np.ones(X.shape[1],dtype=bool)
+		mask[sorted_indices] = False
+		X[:,unk_idx] = X[:,mask].sum(axis=1)
 
 	X = X[:,sorted_indices]
 	idx_to_tk = {idx:tk for tk,idx in full_vocab.items()}
@@ -159,14 +168,14 @@ class BONgramsVectorizer(object):
 										self.vocab, 
 										self.ngram_range, 
 										self.tokenizer,
-										self.unk_token,
-										True)
+										self.unk_token)
 		
 		X, vocab = filter_by_counts(X,
 									full_vocab,
 									self.min_count,
 									self.max_count,
-									self.max_words)
+									self.max_words,
+									self.unk_token)
 		self.vocab = vocab
 		
 		return X
@@ -178,14 +187,34 @@ class BONgramsVectorizer(object):
 	
 	def transform(self,corpus):
 
-		X, _ = count_bag_of_ngrams_using_vocab(corpus,
-										self.vocab, 
-										self.ngram_range, 
-										self.tokenizer,
-										self.unk_token,
-										False)
-		
-		return X
+		vocab = self.vocab
+		unk_token = self.unk_token
+		tokenizer = self.tokenizer
+		ngram_range = self.ngram_range
+
+		# Definiciones para la matriz de coocurrencias:
+		data = []
+		indices = []
+		indptr = [0]
+
+		# Cuento palabras:
+		unk_idx = len(vocab)
+		for doc in tqdm(corpus):
+			features = dict(Counter(get_ngrams(tokenizer(doc),ngram_range)))
+			data.extend(features.values())
+			indices.extend([vocab.get(tk,unk_idx) for tk in features])
+			indptr.append(len(indices))
+
+		# Armo la matriz y el diccionario de vocabulario:
+		X = csr_matrix((data,indices,indptr),shape=(len(corpus),len(vocab)+1)).tolil()
+
+		if isinstance(unk_token,str):
+			X[:,vocab[unk_token]] = X[:,-1]
+			X.resize(X.shape[0],X.shape[1]-1)
+		else:
+			X = X[:,:-1]
+
+		return X.tocsr()
 		
 
 
