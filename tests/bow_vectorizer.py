@@ -7,7 +7,6 @@ from itertools import chain, tee, islice
 from collections import Counter
 import numpy as np
 
-
 sample_train_corpus = ['La zamba "Añoralgias" ha sido recopilada por un gran investigador de nuestro folklore.',
 	'Un hombre nacido en el norte, el noruego Sven Kundsen, el payo Kundsen.',
 	'Solía decir: "Yo soy más criollo que el bacalau".',
@@ -356,10 +355,82 @@ def test6():
 		print('Test 6 failed')
 
 
+def test7():
+
+	ngram_range = (1,2)
+	max_words = None
+	min_count = 0
+	max_count = None
+	vocab = ['por', 'a', 'su', 'una']
+	
+	vec = BONgramsVectorizer(tokenizer=tokenizer,
+							 min_count=min_count,
+							 max_count=max_count,
+							 max_words=max_words,
+							 ngram_range=ngram_range,
+							 vocab=vocab,
+							 unk_token='UNK')
+
+	X_train = vec.fit_transform(sample_train_corpus)
+	X_test = vec.transform(sample_test_corpus)
+
+	train_features = [dict(Counter(get_ngrams(tokenizer(doc),ngram_range))) for doc in sample_train_corpus]
+	freqs_dict = {}
+	for features in train_features:
+		for f in features.keys():
+			try:
+				freqs_dict[f] += features[f]
+			except:
+				freqs_dict[f] = features[f]
+
+	true_vocab = vocab + ['UNK'] + ['por una', 'a su']
+
+	new_train_features = []
+	for features in train_features:
+		feat_dict = {}
+		for feature in features.keys():
+			if feature in true_vocab:
+				feat_dict[feature] = features[feature]
+			else:
+				try:
+					feat_dict['UNK'] += features[feature]
+				except:
+					feat_dict['UNK'] = features[feature]
+		new_train_features.append(feat_dict)
+
+	test_features = [dict(Counter(get_ngrams(tokenizer(doc),ngram_range))) for doc in sample_test_corpus]
+	new_test_features = []
+	for features in test_features:
+		feat_dict = {}
+		for feature in features.keys():
+			if feature in true_vocab:
+				feat_dict[feature] = features[feature]
+			else:
+				try:
+					feat_dict['UNK'] += features[feature]
+				except:
+					feat_dict['UNK'] = features[feature]
+		new_test_features.append(feat_dict)
+
+	try:
+		assert set(vec.vocab.keys()) == set(true_vocab)
+		for i,features in enumerate(new_train_features):
+			for feature in features.keys():
+				assert X_train[i,vec.vocab[feature]] == features[feature]
+		for i,features in enumerate(new_test_features):
+			for feature in features.keys():
+				assert X_test[i,vec.vocab[feature]] == features[feature]
+		
+		print('Test 7 passed!')
+	except AssertionError:
+		print('Test 7 failed')
+
+
 if __name__ == '__main__':
-	""" test1()
+	test1()
 	test2()
 	test3()
 	test4()
-	test5() """
+	test5()
 	test6()
+	test7()
