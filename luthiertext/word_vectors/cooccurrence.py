@@ -194,7 +194,7 @@ def word_by_category_cooccurrence(corpus, labels, tokenizer=None,
     tokenizer = _check_tokenizer(tokenizer)
 
     # Cuento coocurrencias con las etiquetas:
-    for doc, label in zip(corpus, labels):
+    for doc, label in zip(tqdm(corpus), labels):
         for tk in tokenizer(doc):
             cooccurrences_dict[(full_vocab[tk],label)] += 1.
 
