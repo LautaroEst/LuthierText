@@ -8,8 +8,11 @@ def observed_over_expected(df):
     total = col_totals.sum()
     row_totals = df.sum(axis=1)
     expected = np.outer(row_totals, col_totals) / total
-    oe = np.zeros_like(df)
-    oe[expected != 0] = df[expected != 0] / expected[expected != 0]
+    oe = np.zeros(df.shape)
+    mask = expected != 0
+    #np.putmask(oe, mask, df[mask] / expected[mask])
+    #oe[mask].reshape(1,-1) = (df[mask] / expected[mask]).reshape(-1)
+    oe[mask] = df[mask] / expected[mask]
     return oe
 
 
@@ -33,7 +36,8 @@ def tfidf(df):
     # Term frequencies:
     col_totals = df.sum(axis=0)
     tfs = np.zeros_like(df)
-    tfs[:,col_totals!=0] = df[:,col_totals!=0] / col_totals[col_totals != 0]
+    mask = col_totals!=0 
+    tfs[:,mask] = df[:,mask] / col_totals[mask]
     return (tfs.T * idfs).T
 
 
