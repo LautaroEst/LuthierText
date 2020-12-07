@@ -31,7 +31,12 @@ def getsize(obj):
 def main():
 	print(getsize(np.array([])))
 	print(getsize(np.array([1])))
+	print(getsize(np.array([1.])))
 	print(getsize(np.array([1,2,3])))
+	print(getsize(np.array([1.53641723,2.123123,343265734.123135345])))
+	print(getsize(np.float32(1)))
+	print(getsize(np.int32(1)))
+	print(getsize(np.random.randn(300,100000).astype(np.float32)))
 	a = torch.tensor([])
 	print(a.element_size() * a.nelement())
 	a = torch.tensor([1])

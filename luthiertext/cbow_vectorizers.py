@@ -1,9 +1,9 @@
-from .cooccurrence import word_by_word_cooccurrence
-from .cooccurrence import word_by_document_cooccurrence
-from .cooccurrence import word_by_category_cooccurrence
+from .word_vectors.cooccurrence import word_by_word_cooccurrence
+from .word_vectors.cooccurrence import word_by_document_cooccurrence
+from .word_vectors.cooccurrence import word_by_category_cooccurrence
 import numpy as np
 from tqdm import tqdm
-from ..reweighting import observed_over_expected, pmi, tfidf
+from .reweighting import observed_over_expected, pmi, tfidf
 
 
 def _append_unk(X,vocab,unk_token):
